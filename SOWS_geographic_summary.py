@@ -20,6 +20,18 @@ arcpy.env.overwriteOutput = True
 # define functions ----------------------------------------
 
 def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
+    """
+    Calculate SOW counts, size, spacing, and density in polygons of interest
+    Load data into a .gdb and set arcpy.env.workspace to that .gdb
+    
+    Args:
+        summary_polygons: feature class of polygons to summarize sow stats within
+        sows_fc: feature class (polygons) of Small Overwater Structures
+        shoreline_fc: feature class (line) with single feature defining shoreline
+    
+    Returns:
+        Feature class of polygons 'summary_polygons_sum3' with all stats calculated -- located in env .gdb
+    """
 
     # grab name of input summary polygon fc
     in_polygons_desc = arcpy.Describe(summary_polygons)
@@ -129,6 +141,7 @@ if __name__ == "__main__":
     shoretypes = "Shoretypes"
     get_sows_stats(shoretypes, sows_fc, shoreline_fc)
 
+    get_sows_stats()
 
 
 
