@@ -49,12 +49,16 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
                                         ['Area_M', "Stddev"]])
         print(arcpy.GetMessages())
 
-        # get density by summarizing total length of shoreline in each polygon 
+        # get density by summarizing total length of shoreline in each polygon and dividing count by shoreline total 
         print("Calculating total shoreline in each polygon...")
         out_fc_2 = f"{poly_name}_sum2"
         arcpy.analysis.SummarizeWithin(out_fc_1, shoreline_fc, out_fc_2,"KEEP_ALL","", "ADD_SHAPE_SUM", "KILOMETERS")
         print(arcpy.GetMessages())
         arcpy.management.AddField(out_fc_2, "density_sows_km", "DOUBLE")
+        print("Calculating Density...")
+        density_expr = "!Polygon_Count!/!sum_Length_KILOMETERS!"
+        arcpy.management.CalculateField(out_fc_2, "density_sows_km", density_expr, "PYTHON3")
+        print(arcpy.GetMessages())
 
         # get spacing 
         print("Calculating distance between SOWS alongshore...")
@@ -99,7 +103,7 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         arcpy.analysis.Select(shore_spl_lyr, shore_spl_sel)
 
         ## summarize Within using selected features
-        out_fc_3 = f"{poly_name}_sum3"
+        out_fc_3 = f"{poly_name}_SOWS_Stats"
         arcpy.analysis.SummarizeWithin(
             in_polygons=out_fc_2,
             in_sum_features=shore_spl_sel,
@@ -114,6 +118,27 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
             ]
         )
         print(arcpy.GetMessages())
+
+        # tidy fields
+        ## rename Polygon_Count to sows_count
+        arcpy.management.AlterField(out_fc_3, "Polygon_Count", "sows_count", "Count of SOWS")
+
+        ## rename sum_Length_KILOMETERS to total_shoreline_km
+        arcpy.management.AlterField(out_fc_3, "sum_Length_KILOMETERS", "total_shoreline_km", "Total Shoreline (km)")
+
+        ## assign alias to density_sows_km
+        arcpy.management.AlterField(in_table=out_fc_3, field="density_sows_km", new_field_alias="SOWS Density (count/km)")
+
+        ## delete field extra geometry fields from sumwithin tools
+        arcpy.management.DeleteField(out_fc_3, "Polyline_Count_1")
+        arcpy.management.DeleteField(out_fc_3, "sum_Length_KILOMETERS_1")
+
+        ## assign spacing fields better aliases
+        arcpy.management.AlterField(in_table=out_fc_3, field="mean_sows_dist_km", new_field_alias="Mean SOWS Spacing (km)")
+        arcpy.management.AlterField(in_table=out_fc_3, field="sum_sows_dist_km", new_field_alias="Sum SOWS Spacing (km)")
+        arcpy.management.AlterField(in_table=out_fc_3, field="min_sows_dist_km", new_field_alias="Min SOWS Spacing (km)")
+        arcpy.management.AlterField(in_table=out_fc_3, field="max_sows_dist_km", new_field_alias="Max SOWS Spacing (km)")
+        arcpy.management.AlterField(in_table=out_fc_3, field="std_sows_dist_km", new_field_alias="Standard Deviation SOWS Spacing (km)")
 
         print(f"Analysis for count, size, spacing, and density of SOWS within {poly_name} complete!")
     except Exception as e:
@@ -130,16 +155,14 @@ if __name__ == "__main__":
     subbasins = "Subbasins"
     get_sows_stats(subbasins, sows_fc, shoreline_fc)
 
-    counties = "Counties"
-    get_sows_stats(counties, sows_fc, shoreline_fc)
+    #counties = "Counties"
+    #get_sows_stats(counties, sows_fc, shoreline_fc)
 
-    driftcells = "DriftCells"
-    get_sows_stats(driftcells, sows_fc, shoreline_fc)
+    #driftcells = "DriftCells"
+    #get_sows_stats(driftcells, sows_fc, shoreline_fc)
 
-    shoretypes = "Shoretypes"
-    get_sows_stats(shoretypes, sows_fc, shoreline_fc)
-
-    get_sows_stats()
+    #shoretypes = "Shoretypes"
+    #get_sows_stats(shoretypes, sows_fc, shoreline_fc)
 
 
 
