@@ -5,8 +5,6 @@
 # this script is set up to run in an ArcGIS Pro project folder
 # where necessary data is stored in "SOWs.gdb"
 
-# could add some data tidying steps to main function 
-
 # set env -------------------------------------------------
 import arcpy
 from arcgis import GeoAccessor, GeoSeriesAccessor
