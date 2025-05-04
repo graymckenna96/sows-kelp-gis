@@ -62,6 +62,7 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
 
         # get spacing 
         print("Calculating distance between SOWS alongshore...")
+        
         ## get SOWS centroids
         print("Getting SOWS centroids...")
         sows_cent = "sows_centroids"
@@ -129,7 +130,7 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         arcpy.management.AlterField(out_fc_3, "density_sows_km", "density_sows_km", "SOWS Density (count/km)")
 
         # delete extra geometry fields
-        arcpy.management.DeleteField(out_fc_3, ["Polyline_Count_1", "sum_Length_KILOMETERS_1", "sum_Area_SQUAREKILOMETER", "Polyline_Count"])
+        arcpy.management.DeleteField(out_fc_3, ["Polyline_Count_1", "sum_Length_KILOMETERS_1", "sum_Area_SQUAREKILOMETERS", "Polyline_Count"])
 
         # assign better aliases to area fields
         area_fields = [
@@ -163,20 +164,20 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
 
 # apply functions to geometries of interest ----------------
 if __name__ == "__main__":
-    sows_fc = "NOAA_SOWS_filtered"
+    sows_fc = "NOAA_SOWS_Filtered_v3"
     shoreline_fc = "noaa_shoreline_diss"
     
-    subbasins = "Subbasins"
-    get_sows_stats(subbasins, sows_fc, shoreline_fc)
+    #subbasins = "Subbasins"
+    #get_sows_stats(subbasins, sows_fc, shoreline_fc)
 
-    counties = "Counties"
+    counties = "Counties_StatePlane"
     get_sows_stats(counties, sows_fc, shoreline_fc)
 
-    driftcells = "DriftCells"
-    get_sows_stats(driftcells, sows_fc, shoreline_fc)
+    #driftcells = "DriftCells"
+    #get_sows_stats(driftcells, sows_fc, shoreline_fc)
 
-    shoretypes = "Shoretypes"
-    get_sows_stats(shoretypes, sows_fc, shoreline_fc)
+    #shoretypes = "Shoretypes"
+    #get_sows_stats(shoretypes, sows_fc, shoreline_fc)
 
 
 
