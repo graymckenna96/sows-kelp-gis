@@ -120,27 +120,41 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         print(arcpy.GetMessages())
 
         # tidy fields
-        ## rename Polygon_Count to sows_count
+        print("Tidying Fields...")
+        # rename fields
         arcpy.management.AlterField(out_fc_3, "Polygon_Count", "sows_count", "Count of SOWS")
-
-        ## rename sum_Length_KILOMETERS to total_shoreline_km
         arcpy.management.AlterField(out_fc_3, "sum_Length_KILOMETERS", "total_shoreline_km", "Total Shoreline (km)")
 
-        ## assign alias to density_sows_km
-        arcpy.management.AlterField(in_table=out_fc_3, field="density_sows_km", new_field_alias="SOWS Density (count/km)")
+        # assign alias to density field
+        arcpy.management.AlterField(out_fc_3, "density_sows_km", "density_sows_km", "SOWS Density (count/km)")
 
-        ## delete field extra geometry fields from sumwithin tools
-        arcpy.management.DeleteField(out_fc_3, "Polyline_Count_1")
-        arcpy.management.DeleteField(out_fc_3, "sum_Length_KILOMETERS_1")
+        # delete extra geometry fields
+        arcpy.management.DeleteField(out_fc_3, ["Polyline_Count_1", "sum_Length_KILOMETERS_1", "sum_Area_SQUAREKILOMETER", "Polyline_Count"])
 
-        ## assign spacing fields better aliases
-        arcpy.management.AlterField(in_table=out_fc_3, field="mean_sows_dist_km", new_field_alias="Mean SOWS Spacing (km)")
-        arcpy.management.AlterField(in_table=out_fc_3, field="sum_sows_dist_km", new_field_alias="Sum SOWS Spacing (km)")
-        arcpy.management.AlterField(in_table=out_fc_3, field="min_sows_dist_km", new_field_alias="Min SOWS Spacing (km)")
-        arcpy.management.AlterField(in_table=out_fc_3, field="max_sows_dist_km", new_field_alias="Max SOWS Spacing (km)")
-        arcpy.management.AlterField(in_table=out_fc_3, field="std_sows_dist_km", new_field_alias="Standard Deviation SOWS Spacing (km)")
+        # assign better aliases to area fields
+        area_fields = [
+            ("mean_Area_M", "mean_sows_Area_M", "Mean SOWS Area (m)"),
+            ("sum_Area_M", "sum_sows_Area_M", "Sum SOWS Area (m)"),
+            ("min_Area_M", "min_sows_Area_M", "Min SOWS Area (m)"),
+            ("max_Area_M", "max_sows_Area_M", "Max SOWS Area (m)"),
+            ("std_Area_M", "std_sows_Area_M", "Standard Deviation SOWS Area (m)")
+        ]
+        for old_field, new_field, alias in area_fields:
+            arcpy.management.AlterField(out_fc_3, old_field, new_field, alias)
+
+        # assign better aliases to spacing fields
+        spacing_fields = [
+            ("mean_sows_dist_km", "Mean SOWS Spacing (km)"),
+            ("sum_sows_dist_km", "Sum SOWS Spacing (km)"),
+            ("min_sows_dist_km", "Min SOWS Spacing (km)"),
+            ("max_sows_dist_km", "Max SOWS Spacing (km)"),
+            ("std_sows_dist_km", "Standard Deviation SOWS Spacing (km)")
+        ]
+        for field, alias in spacing_fields:
+            arcpy.management.AlterField(out_fc_3, field, field, alias)
 
         print(f"Analysis for count, size, spacing, and density of SOWS within {poly_name} complete!")
+        print(f"Results: {out_fc_3}")
     except Exception as e:
         print("Processing error: ")
         print(arcpy.GetMessages())
@@ -155,14 +169,14 @@ if __name__ == "__main__":
     subbasins = "Subbasins"
     get_sows_stats(subbasins, sows_fc, shoreline_fc)
 
-    #counties = "Counties"
-    #get_sows_stats(counties, sows_fc, shoreline_fc)
+    counties = "Counties"
+    get_sows_stats(counties, sows_fc, shoreline_fc)
 
-    #driftcells = "DriftCells"
-    #get_sows_stats(driftcells, sows_fc, shoreline_fc)
+    driftcells = "DriftCells"
+    get_sows_stats(driftcells, sows_fc, shoreline_fc)
 
-    #shoretypes = "Shoretypes"
-    #get_sows_stats(shoretypes, sows_fc, shoreline_fc)
+    shoretypes = "Shoretypes"
+    get_sows_stats(shoretypes, sows_fc, shoreline_fc)
 
 
 
