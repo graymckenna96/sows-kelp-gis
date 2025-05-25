@@ -31,16 +31,23 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         Feature class of polygons 'summary_polygons_sum3' with all stats calculated -- located in env .gdb
     """
 
-    # grab name of input summary polygon fc
+    # grab names of input summary polygon fcs
     in_polygons_desc = arcpy.Describe(summary_polygons)
     poly_name = in_polygons_desc.name
     in_sows_desc = arcpy.Describe(sows_fc)
     print(f"Calculating statistics for {in_sows_desc.name} within {poly_name}")
     try:
         # get counts and area stats in polygons
+
+        ## get SOWS centroids --> need to use points so Area_M val is not weighted by sows polygon areas in Sum Within
+        print("Getting SOWS centroids...")
+        sows_cent = "sows_centroids"
+        arcpy.management.FeatureToPoint(sows_fc, sows_cent, "CENTROID")
+        print(arcpy.GetMessages())
+
         print("Getting SOWS count and area stats within polygons...")
         out_fc_1 = f"{poly_name}_sum1"
-        arcpy.analysis.SummarizeWithin(summary_polygons, sows_fc, out_fc_1,
+        arcpy.analysis.SummarizeWithin(summary_polygons, sows_cent, out_fc_1,
                                         "KEEP_ALL", 
                                         [['Area_M', "Mean"],
                                         ['Area_M', "Sum"],
@@ -56,18 +63,12 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         print(arcpy.GetMessages())
         arcpy.management.AddField(out_fc_2, "density_sows_km", "DOUBLE")
         print("Calculating Density...")
-        density_expr = "!Polygon_Count!/!sum_Length_KILOMETERS!"
+        density_expr = "!Point_Count!/!sum_Length_KILOMETERS!"
         arcpy.management.CalculateField(out_fc_2, "density_sows_km", density_expr, "PYTHON3")
         print(arcpy.GetMessages())
 
         # get spacing 
         print("Calculating distance between SOWS alongshore...")
-        
-        ## get SOWS centroids
-        print("Getting SOWS centroids...")
-        sows_cent = "sows_centroids"
-        arcpy.management.FeatureToPoint(sows_fc, sows_cent, "CENTROID")
-        print(arcpy.GetMessages())
 
         ## snap to nearest shoreline edge
         print("Snapping to nearest shoreline...")
@@ -103,11 +104,16 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         shore_spl_sel = "shorelines_split_select"
         arcpy.analysis.Select(shore_spl_lyr, shore_spl_sel)
 
+        ## export to points to avoid weighting values by line length 
+        shore_spl_cent = "shorel_spl_sel_centroids"
+        arcpy.management.FeatureToPoint(shore_spl_sel, shore_spl_cent, "CENTROID")
+        print(arcpy.GetMessages())
+
         ## summarize Within using selected features
         out_fc_3 = f"{poly_name}_SOWS_Stats"
         arcpy.analysis.SummarizeWithin(
             in_polygons=out_fc_2,
-            in_sum_features=shore_spl_sel,
+            in_sum_features=shore_spl_cent,
             out_feature_class=out_fc_3,
             keep_all_polygons="KEEP_ALL",
             sum_fields=[
@@ -123,7 +129,7 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         # tidy fields
         print("Tidying Fields...")
         # rename fields
-        arcpy.management.AlterField(out_fc_3, "Polygon_Count", "sows_count", "Count of SOWS")
+        arcpy.management.AlterField(out_fc_3, "Point_Count", "sows_count", "Count of SOWS")
         arcpy.management.AlterField(out_fc_3, "sum_Length_KILOMETERS", "total_shoreline_km", "Total Shoreline (km)")
 
         # assign alias to density field
@@ -153,9 +159,10 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         ]
         for field, alias in spacing_fields:
             arcpy.management.AlterField(out_fc_3, field, field, alias)
-
+        print("-------------------")
         print(f"Analysis for count, size, spacing, and density of SOWS within {poly_name} complete!")
         print(f"Results: {out_fc_3}")
+        print("-------------------")
     except Exception as e:
         print("Processing error: ")
         print(arcpy.GetMessages())
@@ -167,17 +174,17 @@ if __name__ == "__main__":
     sows_fc = "NOAA_SOWS_Filtered_v3"
     shoreline_fc = "noaa_shoreline_diss"
     
-    #subbasins = "Subbasins"
-    #get_sows_stats(subbasins, sows_fc, shoreline_fc)
+    subbasins = "Subbasins"
+    get_sows_stats(subbasins, sows_fc, shoreline_fc)
 
     counties = "Counties_StatePlane"
     get_sows_stats(counties, sows_fc, shoreline_fc)
 
-    #driftcells = "DriftCells"
-    #get_sows_stats(driftcells, sows_fc, shoreline_fc)
+    driftcells = "DriftCells"
+    get_sows_stats(driftcells, sows_fc, shoreline_fc)
 
-    #shoretypes = "Shoretypes"
-    #get_sows_stats(shoretypes, sows_fc, shoreline_fc)
+    shoretypes = "Shoretypes"
+    get_sows_stats(shoretypes, sows_fc, shoreline_fc)
 
 
 
