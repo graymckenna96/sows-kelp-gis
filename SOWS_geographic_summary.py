@@ -45,7 +45,7 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         arcpy.management.FeatureToPoint(sows_fc, sows_cent, "CENTROID")
         print(arcpy.GetMessages())
 
-        print("Getting SOWS count and area stats within polygons...")
+        print("Getting SOWS area stats within polygons...")
         out_fc_1 = f"{poly_name}_sum1"
         arcpy.analysis.SummarizeWithin(summary_polygons, sows_cent, out_fc_1,
                                         "KEEP_ALL", 
@@ -56,6 +56,9 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
                                         ['Area_M', "Stddev"]])
         print(arcpy.GetMessages())
 
+        ## rename count field appropriately
+        arcpy.management.AlterField(out_fc_1, "Point_Count", "sows_count", "Count of SOWS")
+
         # get density by summarizing total length of shoreline in each polygon and dividing count by shoreline total 
         print("Calculating total shoreline in each polygon...")
         out_fc_2 = f"{poly_name}_sum2"
@@ -63,7 +66,7 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         print(arcpy.GetMessages())
         arcpy.management.AddField(out_fc_2, "density_sows_km", "DOUBLE")
         print("Calculating Density...")
-        density_expr = "!Point_Count!/!sum_Length_KILOMETERS!"
+        density_expr = "!sows_count!/!sum_Length_KILOMETERS!"
         arcpy.management.CalculateField(out_fc_2, "density_sows_km", density_expr, "PYTHON3")
         print(arcpy.GetMessages())
 
@@ -73,12 +76,12 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         ## snap to nearest shoreline edge
         print("Snapping to nearest shoreline...")
         arcpy.edit.Snap(in_features=sows_cent,
-        snap_environment="noaa_shoreline_diss EDGE '500 Unknown'")
+        snap_environment="noaa_shoreline_diss EDGE '1 KILOMETER'")
         print(arcpy.GetMessages())
 
         ## split shoreline at points
         print("Splitting shoreline...")
-        shore_spl = "shoreline_split"
+        shore_spl = f"{poly_name}_shoreline_split"
         arcpy.management.SplitLineAtPoint(shoreline_fc, sows_cent, shore_spl, "1 Feet")
         print(arcpy.GetMessages())
 
@@ -101,12 +104,12 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
 
 
         ## copy selected features
-        shore_spl_sel = "shorelines_split_select"
+        shore_spl_sel = f"{poly_name}_shorel_split_select"
         arcpy.analysis.Select(shore_spl_lyr, shore_spl_sel)
 
         ## export to points to avoid weighting values by line length 
-        shore_spl_cent = "shorel_spl_sel_centroids"
-        arcpy.management.FeatureToPoint(shore_spl_sel, shore_spl_cent, "CENTROID")
+        shore_spl_cent = f"{poly_name}_shorel_spl_sel_pt"
+        arcpy.management.FeatureVerticesToPoints(shore_spl_sel, shore_spl_cent, "MID")
         print(arcpy.GetMessages())
 
         ## summarize Within using selected features
@@ -129,14 +132,14 @@ def get_sows_stats(summary_polygons, sows_fc, shoreline_fc):
         # tidy fields
         print("Tidying Fields...")
         # rename fields
-        arcpy.management.AlterField(out_fc_3, "Point_Count", "sows_count", "Count of SOWS")
+        
         arcpy.management.AlterField(out_fc_3, "sum_Length_KILOMETERS", "total_shoreline_km", "Total Shoreline (km)")
 
         # assign alias to density field
         arcpy.management.AlterField(out_fc_3, "density_sows_km", "density_sows_km", "SOWS Density (count/km)")
 
         # delete extra geometry fields
-        arcpy.management.DeleteField(out_fc_3, ["Polyline_Count_1", "sum_Length_KILOMETERS_1", "sum_Area_SQUAREKILOMETERS", "Polyline_Count"])
+        arcpy.management.DeleteField(out_fc_3, ["Polyline_Count_1", "sum_Length_KILOMETERS_1", "sum_Area_SQUAREKILOMETERS", "Polyline_Count", "Point_Count"])
 
         # assign better aliases to area fields
         area_fields = [
@@ -174,17 +177,17 @@ if __name__ == "__main__":
     sows_fc = "NOAA_SOWS_Filtered_v3"
     shoreline_fc = "noaa_shoreline_diss"
     
-    subbasins = "Subbasins"
-    get_sows_stats(subbasins, sows_fc, shoreline_fc)
+   # subbasins = "Subbasins"
+   # get_sows_stats(subbasins, sows_fc, shoreline_fc)
 
-    counties = "Counties_StatePlane"
-    get_sows_stats(counties, sows_fc, shoreline_fc)
+   # counties = "Counties_StatePlane"
+   # get_sows_stats(counties, sows_fc, shoreline_fc)
 
     driftcells = "DriftCells"
     get_sows_stats(driftcells, sows_fc, shoreline_fc)
 
-    shoretypes = "Shoretypes"
-    get_sows_stats(shoretypes, sows_fc, shoreline_fc)
+  #  shoretypes = "Shoretypes"
+   # get_sows_stats(shoretypes, sows_fc, shoreline_fc)
 
 
 
